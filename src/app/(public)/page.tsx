@@ -2,6 +2,7 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EventGrid } from "@/components/site/event-card";
+import { PageHero, PageHeroEyebrow } from "@/components/site/page-hero";
 import { Section, SectionTitle } from "@/components/site/section";
 import { pillars, site } from "@/content/site";
 import { tryGetUpcomingEvents } from "@/lib/events";
@@ -12,21 +13,25 @@ export default async function HomePage() {
 
   return (
     <>
-      <section className="bg-gradient-to-b from-accent/60 to-background">
-        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-20 md:py-28">
-          <p className="text-sm font-medium uppercase tracking-widest text-primary">Тренерка · Коуч · Мама</p>
-          <h1 className="max-w-3xl font-heading text-5xl font-semibold leading-tight md:text-6xl">{site.name}</h1>
-          <p className="max-w-2xl text-lg text-muted-foreground">{site.tagline}</p>
-          <div className="flex flex-wrap gap-3">
-            <Link href="/events" className={cn(buttonVariants({ size: "lg" }), "h-11 px-6 text-base")}>
-              Розклад подій
-            </Link>
-            <Link href="/about" className={cn(buttonVariants({ size: "lg", variant: "outline" }), "h-11 px-6 text-base")}>
-              Про мене
-            </Link>
-          </div>
+      <PageHero className="py-20 md:py-28">
+        <PageHeroEyebrow>Тренерка · Коуч · Мама</PageHeroEyebrow>
+        <h1 className="max-w-3xl font-heading text-5xl font-semibold leading-tight md:text-6xl">{site.name}</h1>
+        <p className="max-w-2xl text-lg text-white/80">{site.tagline}</p>
+        <div className="flex flex-wrap gap-3">
+          <Link href="/events" className={cn(buttonVariants({ size: "lg" }), "h-11 px-6 text-base")}>
+            Розклад подій
+          </Link>
+          <Link
+            href="/about"
+            className={cn(
+              buttonVariants({ size: "lg", variant: "outline" }),
+              "h-11 border-white/40 bg-transparent px-6 text-base text-white hover:bg-white/10 hover:text-white",
+            )}
+          >
+            Про мене
+          </Link>
         </div>
-      </section>
+      </PageHero>
 
       <Section>
         <SectionTitle title="Про що я говорю" subtitle="Чотири теми, з якими я працюю щодня — у блозі та з клієнтками." />

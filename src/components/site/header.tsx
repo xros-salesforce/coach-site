@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Menu } from "lucide-react";
 import { nav, site } from "@/content/site";
@@ -6,7 +7,15 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
-        <Link href="/" className="font-heading text-2xl font-semibold tracking-tight">
+        <Link href="/" className="flex items-center gap-3 font-heading text-2xl font-semibold tracking-tight">
+          <Image
+            src="/images/logo.jpg"
+            alt={site.name}
+            width={40}
+            height={40}
+            loading="eager"
+            className="size-10 rounded-full object-cover ring-2 ring-primary/20"
+          />
           {site.shortName}
         </Link>
         <nav className="hidden gap-6 text-sm md:flex">
