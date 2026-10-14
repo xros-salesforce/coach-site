@@ -218,8 +218,10 @@ web3 = 30
 # secret = ""
 
 [auth.email]
-# Allow/disallow new user signups via email to your project.
-enable_signup = false
+# Despite the name, false here disables the email provider entirely (no magic-link sign-in).
+# Keep it true: new accounts are blocked by [auth] enable_signup = false, so only users created
+# with scripts/add-admin.mts can sign in.
+enable_signup = true
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
@@ -243,6 +245,12 @@ otp_expiry = 3600
 # pass = "env(SENDGRID_API_KEY)"
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
+
+# Admin sign-in link. Uses token_hash (not the PKCE redirect) so the link works on a different
+# device than the one that requested it. Production: paste the same template in the dashboard.
+[auth.email.template.magic_link]
+subject = "Вхід в адмінку сайту"
+content_path = "./supabase/templates/magic_link.html"
 
 # Uncomment to customize email template
 # [auth.email.template.invite]
