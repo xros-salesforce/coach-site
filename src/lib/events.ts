@@ -11,18 +11,18 @@ export type PublicEvent = {
   starts_at: string;
   ends_at: string | null;
   location: string | null;
-  online_url: string | null;
   capacity: number;
   is_paid: boolean;
   price_uah: number | null;
-  payment_instructions: string | null;
   cover_image_path: string | null;
   type_code: string;
   type_name: string;
   seats_left: number;
 };
 
-// Cached for about a minute; registrations and admin edits call revalidateTag(EVENTS_TAG) to refresh seat counts sooner.
+// Cached for about a minute; admin edits and registration changes call updateTag(EVENTS_TAG) to refresh
+// seat counts sooner. The meeting link and payment instructions are deliberately not public (see the
+// events_public view); participants get them by email after registering.
 export const EVENTS_TAG = "events";
 
 export async function getUpcomingEvents(limit?: number): Promise<PublicEvent[]> {
