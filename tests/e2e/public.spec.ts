@@ -19,7 +19,7 @@ test.afterAll(() => fx.cleanup());
 
 test("home page shows her name, tagline and calls to action", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1, name: "Віка Саксон" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Вікторія Саксон" })).toBeVisible();
   await expect(page.getByText("Тренерка · Коуч · Мама")).toBeVisible();
   await expect(page.getByRole("link", { name: "Розклад подій" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Про мене" }).last()).toBeVisible();

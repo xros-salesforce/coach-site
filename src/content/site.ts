@@ -10,8 +10,8 @@ export const isPlaceholder = (text: string) => /«[^»]*»/.test(text);
 export const withoutPlaceholders = (text: string) => text.replace(/\s*«[^»]*»/g, "").trim();
 
 export const site = {
-  name: "Віка Саксон",
-  shortName: "Віка",
+  name: "Вікторія Саксон",
+  shortName: "Вікторія",
   tagline: "Мама, тренерка та коуч. Допомагаю жінкам стати сильнішими — у тілі, ментально й у житті.",
   description:
     "Фітнес-тренерка у Львові: схуднення, фітнес-бікіні, натуральний бодібілдинг. Тренування, коучинг і харчування для жінок і мам. Розклад подій та запис онлайн.",
@@ -39,12 +39,12 @@ export const nav = [
 export const gallery = [
   {
     code: "DQ4NabNjaHr",
-    alt: "Віка з медаллю чемпіонату WNBF у Польщі",
+    alt: "Вікторія з медаллю чемпіонату WNBF у Польщі",
     href: "https://www.instagram.com/p/DQ4NabNjaHr/",
   },
   {
     code: "DcLzGJvjdBo",
-    alt: "Віка на випускному з дипломом",
+    alt: "Вікторія на випускному з дипломом",
     href: "https://www.instagram.com/p/DcLzGJvjdBo/",
   },
 ] as const;
@@ -60,13 +60,13 @@ export const about = {
   title: "Про мене",
   paragraphs: [
     // Facts below are from her Instagram/Threads bio (Oct 2026); expand with her own words.
-    "Я — Віка, фітнес-тренерка зі Львова і мама. Мінус 26 кг — мій власний досвід, тож шлях до змін я знаю не з підручників. «Розкажіть, як прийшли у спорт і що змінилося після народження дитини.»",
+    "Я — Вікторія, фітнес-тренерка зі Львова і мама. Мінус 26 кг — мій власний досвід, тож шлях до змін я знаю не з підручників. «Розкажіть, як прийшли у спорт і що змінилося після народження дитини.»",
     "Виступаю у категорії фітнес-бікіні в натуральному бодібілдингу (WNBF). Бронзова призерка міжнародного чемпіонату в Польщі та топ-2 в Україні. «Сертифікати та освіта.»",
     "«Ваш підхід до тренувань і харчування, кому ви допомагаєте найкраще.»",
   ],
   // Her own phone photos (approved; same files as the gallery).
   photos: [
-    { src: "/images/gallery/DQ4NabNjaHr.jpg", alt: "Віка з бронзовою медаллю WNBF", caption: "Бронза міжнародного чемпіонату WNBF, Польща" },
+    { src: "/images/gallery/DQ4NabNjaHr.jpg", alt: "Вікторія з бронзовою медаллю WNBF", caption: "Бронза міжнародного чемпіонату WNBF, Польща" },
   ],
   highlights: [
     { value: "−26 кг", label: "власний результат" },
