@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# coach-site
 
-## Getting Started
+Ukrainian-language site for a fitness coach: events with free and paid registration, a lead list,
+and an admin area. Next.js 16 (App Router, Cache Components) + Supabase + Tailwind/shadcn.
 
-First, run the development server:
+## Run locally
+
+Requires Node 22+ and Docker (Docker Desktop or OrbStack).
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npx supabase start          # local Postgres, auth, storage; applies migrations and seed data
+npm run dev                 # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Create `.env.local` with the values printed by `npx supabase start`:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
+SUPABASE_SERVICE_ROLE_KEY=<service_role key>
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Useful local URLs: Supabase Studio http://127.0.0.1:54323 · captured emails (Mailpit) http://127.0.0.1:54324
 
-## Learn More
+## Admin area
 
-To learn more about Next.js, take a look at the following resources:
+`/admin/login` signs in with a one-time email link. Only accounts added with the script can sign in:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+node --env-file=.env.local scripts/add-admin.mts someone@example.com
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Locally the sign-in email lands in Mailpit, not a real inbox.
 
-## Deploy on Vercel
+## Content
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Static texts, photos and links live in `src/content/site.ts`. Gallery images are in
+`public/images/gallery/<instagram post code>.jpg`. Rules: no photos of the child, and no professional
+shoots without the photographer's permission.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Tests
+
+| Command | What it covers | Needs |
+|---|---|---|
+| `npm test` | Unit tests: form validation, Kyiv time, slugs, CSV export, formatting | nothing |
+| `npm run test:db` | Database rules: who can read/write what, seats, waitlist, payment holds, cancellation, concurrent sign-ups | `npx supabase start` |
+| `npm run test:e2e` | Browser tests of the public site (desktop + phone) and the admin area | Supabase; starts `npm run dev` if needed |
+| `npm run test:all` | Typecheck, lint, and all of the above | Supabase |
+
+Browser tests use Playwright's Chromium (install once with `npx playwright install chromium`), or an
+installed browser: `PLAYWRIGHT_CHANNEL=msedge npm run test:e2e` (or `chrome`).
+
+Database and browser tests create their own events, contacts and temporary users with unique names
+and delete them afterwards, so real admin accounts and data are never touched.
+
+Test files: `src/**/*.test.ts` (unit), `tests/db/` (database), `tests/e2e/` (browser).

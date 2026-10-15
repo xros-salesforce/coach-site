@@ -15,7 +15,7 @@ export default function ContactsPage() {
   ];
   return (
     <Section className="max-w-3xl">
-      <SectionTitle title="Контакти" subtitle="Пишіть — відповім на всі запитання щодо тренувань, харчування та подій." />
+      <SectionTitle as="h1" title="Контакти" subtitle="Пишіть — відповім на всі запитання щодо тренувань, харчування та подій." />
       <ul className="space-y-4 text-lg">
         {items.map(({ icon: Icon, label, href }) => (
           <li key={label} className="flex items-center gap-3">

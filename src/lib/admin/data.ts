@@ -1,5 +1,6 @@
 import "server-only";
 import { requireAdmin } from "@/lib/admin/auth";
+import { type ContactFilters, searchTerm } from "@/lib/admin/filters";
 import { createSessionClient } from "@/lib/supabase/server";
 
 // Admin reads. Each one checks the session itself (layouts and pages render in parallel, so a
@@ -105,24 +106,12 @@ export type AdminContact = {
   registrations: { count: number }[];
 };
 
-export type ContactFilters = { q?: string; interest?: string; consent?: boolean };
-
-/** Reads contact filters from page searchParams or a route's URLSearchParams. */
-export function contactFilters(sp: Record<string, string | string[] | undefined> | URLSearchParams): ContactFilters {
-  const get = (k: string) => {
-    const v = sp instanceof URLSearchParams ? sp.get(k) : sp[k];
-    return typeof v === "string" && v ? v : undefined;
-  };
-  return { q: get("q"), interest: get("interest"), consent: get("consent") === "1" };
-}
-
 export async function listContacts({ q, interest, consent }: ContactFilters) {
   let query = (await db())
     .from("contacts")
     .select("*, registrations(count)")
     .order("created_at", { ascending: false });
-  // Strip characters that have meaning in PostgREST filter syntax before building the OR filter.
-  const term = q?.replace(/[,()*%\\]/g, " ").trim();
+  const term = searchTerm(q);
   if (term) query = query.or(`full_name.ilike.*${term}*,email.ilike.*${term}*,phone.ilike.*${term}*`);
   if (interest) query = query.contains("interests", [interest]);
   if (consent) query = query.not("marketing_consent_at", "is", null).is("unsubscribed_at", null);

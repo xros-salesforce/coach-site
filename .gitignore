@@ -12,6 +12,12 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
+/blob-report/
+
+# Salesforce CLI cache (not part of this project)
+/.sf/
 
 # next.js
 /.next/

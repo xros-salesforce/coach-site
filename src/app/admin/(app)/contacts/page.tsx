@@ -3,7 +3,8 @@ import { Download, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { contactFilters, listContacts, listEventTypes } from "@/lib/admin/data";
+import { listContacts, listEventTypes } from "@/lib/admin/data";
+import { contactFilters } from "@/lib/admin/filters";
 import { contactSource } from "@/lib/admin/labels";
 import { formatShortDate } from "@/lib/format";
 

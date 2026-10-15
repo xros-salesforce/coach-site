@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "Галерея" };
 export default function GalleryPage() {
   return (
     <Section>
-      <SectionTitle title="Галерея" subtitle="Улюблені публікації з Instagram." />
+      <SectionTitle as="h1" title="Галерея" subtitle="Улюблені публікації з Instagram." />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         {gallery.map((item) => (
           <a

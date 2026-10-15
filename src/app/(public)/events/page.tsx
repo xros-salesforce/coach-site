@@ -11,7 +11,7 @@ export default async function EventsPage() {
   const { events, failed } = await tryGetUpcomingEvents();
   return (
     <Section>
-      <SectionTitle title="Події" subtitle="Тренування, майстер-класи та коучинг. Оберіть подію та запишіться онлайн." />
+      <SectionTitle as="h1" title="Події" subtitle="Тренування, майстер-класи та коучинг. Оберіть подію та запишіться онлайн." />
       {failed ? (
         <p className="text-muted-foreground">Розклад тимчасово недоступний. Спробуйте пізніше.</p>
       ) : events.length ? (

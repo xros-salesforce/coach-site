@@ -2,11 +2,9 @@
 
 import { refresh, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
-import { z } from "zod";
 import { requireAdmin } from "@/lib/admin/auth";
+import { EVENT_FIELDS, parseEventForm } from "@/lib/admin/event-schema";
 import { EVENTS_TAG } from "@/lib/events";
-import { fromKyivInput } from "@/lib/kyiv-time";
-import { slugify } from "@/lib/slug";
 import { createSessionClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -18,40 +16,6 @@ export type EventFormState = {
   values?: Record<string, string>;
   attempt?: number;
 };
-
-const EVENT_FIELDS = [
-  "title", "slug", "description", "event_type_id", "starts_at", "ends_at", "location", "online_url",
-  "capacity", "price_uah", "payment_instructions", "status",
-] as const;
-
-const optionalText = z.string().trim().transform((v) => v || null);
-
-const eventSchema = z
-  .object({
-    title: z.string().trim().min(3, "Вкажіть назву (від 3 символів)"),
-    slug: z.string().trim(),
-    description: z.string().trim(),
-    event_type_id: z.uuid("Оберіть тип події"),
-    starts_at: z.string().transform((v, ctx) => fromKyivInput(v) ?? (ctx.addIssue({ code: "custom", message: "Вкажіть дату й час початку" }), z.NEVER)),
-    ends_at: z.string().transform((v) => (v ? fromKyivInput(v) : null)),
-    location: optionalText,
-    online_url: optionalText.pipe(z.url("Посилання має починатися з https://").nullable()),
-    capacity: z.coerce.number().int("Ціле число").min(1, "Хоча б 1 місце").max(10000),
-    is_paid: z.boolean(),
-    price_uah: z.string().trim(),
-    payment_instructions: optionalText,
-    status: z.enum(["draft", "published", "cancelled"]),
-  })
-  .transform((v, ctx) => {
-    const slug = slugify(v.slug || v.title);
-    if (!slug) ctx.addIssue({ code: "custom", path: ["slug"], message: "Адреса має містити літери або цифри" });
-    if (v.ends_at && v.ends_at <= v.starts_at) {
-      ctx.addIssue({ code: "custom", path: ["ends_at"], message: "Кінець має бути пізніше за початок" });
-    }
-    const price = v.is_paid ? Number(v.price_uah.replace(",", ".")) : null;
-    if (v.is_paid && !(price! > 0)) ctx.addIssue({ code: "custom", path: ["price_uah"], message: "Вкажіть ціну в гривнях" });
-    return { ...v, slug, price_uah: price, payment_instructions: v.is_paid ? v.payment_instructions : null };
-  });
 
 const COVER_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 const COVER_MAX_BYTES = 5 * 1024 * 1024;
@@ -67,12 +31,8 @@ export async function saveEvent(prev: EventFormState, formData: FormData): Promi
     attempt: (prev.attempt ?? 0) + 1,
   });
 
-  const parsed = eventSchema.safeParse({ ...raw, is_paid: raw.is_paid === "on" });
-  if (!parsed.success) {
-    const errors: Record<string, string> = {};
-    for (const issue of parsed.error.issues) errors[String(issue.path[0])] ??= issue.message;
-    return fail({ errors });
-  }
+  const parsed = parseEventForm(raw);
+  if (!parsed.ok) return fail({ errors: parsed.errors });
 
   const supabase = await createSessionClient();
   const values: Record<string, unknown> = { ...parsed.data };

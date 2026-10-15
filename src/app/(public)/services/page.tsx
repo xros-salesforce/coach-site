@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Послуги" };
 export default function ServicesPage() {
   return (
     <Section>
-      <SectionTitle title="Послуги" subtitle="Оберіть формат, який підходить саме вам. Не впевнені? Напишіть — підберемо разом." />
+      <SectionTitle as="h1" title="Послуги" subtitle="Оберіть формат, який підходить саме вам. Не впевнені? Напишіть — підберемо разом." />
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {services.map((s) => (
           <Card key={s.title} className="flex flex-col">

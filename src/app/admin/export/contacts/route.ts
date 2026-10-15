@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { csvResponse, toCsv } from "@/lib/admin/csv";
-import { contactFilters, listContacts } from "@/lib/admin/data";
+import { listContacts } from "@/lib/admin/data";
+import { contactFilters } from "@/lib/admin/filters";
 import { contactSource } from "@/lib/admin/labels";
 import { formatDateTime } from "@/lib/format";
 
