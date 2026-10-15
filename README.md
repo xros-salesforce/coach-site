@@ -53,6 +53,8 @@ Protection against someone spamming an admin's address (each new link cancels th
 3. Auth → URL configuration: set the Site URL to the live domain.
 4. Set up custom SMTP (e.g. Resend): Supabase's built-in mailer only emails project team members.
 5. Create the admin accounts against the live project with `scripts/add-admin.mts`.
+6. Run `npm run check:content`: it lists every «…» placeholder still left in `src/content/site.ts`
+   (pages hide unfinished links and prompts, but the real texts, prices and contacts should be filled in).
 
 ## Content
 
