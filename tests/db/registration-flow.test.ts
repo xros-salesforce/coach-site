@@ -56,8 +56,8 @@ describe.skipIf(!hasDb)("registration flow", () => {
       expect(reg.status).toBe("pending_payment");
       expect(Number(reg.amount_uah)).toBe(450);
       const holdHours = (new Date(reg.hold_expires_at!).getTime() - Date.now()) / 36e5;
-      expect(holdHours).toBeGreaterThan(47.9);
-      expect(holdHours).toBeLessThanOrEqual(48);
+      // The database clock (Docker VM) and this machine's clock can drift slightly; allow a minute either way.
+      expect(Math.abs(holdHours - 48)).toBeLessThan(1 / 60);
 
       const { data: payments } = await fx.db.from("payments").select("status, amount_uah, provider").eq("registration_id", reg.registration_id);
       expect(payments).toEqual([{ status: "pending", amount_uah: 450, provider: "manual" }]);

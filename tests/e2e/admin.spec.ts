@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { Fixture, hasDb, signIn } from "./helpers";
+import { Fixture, hasDb, kyivDateTime, signIn } from "./helpers";
 
 test.skip(!hasDb, "needs local Supabase and .env.local");
 test.describe.configure({ mode: "serial" });
@@ -61,6 +61,7 @@ test.describe("access", () => {
 
 test.describe("managing events and registrations", () => {
   const title = `Тест адмінки ${fx.run}`;
+  const when = kyivDateTime(30);
   let eventId: string;
 
   test.beforeEach(async ({ page }) => {
@@ -71,7 +72,7 @@ test.describe("managing events and registrations", () => {
   test("create a paid event (with validation) and see it on the site", async ({ page }) => {
     await page.goto("/admin/events/new");
     await page.getByLabel("Назва").fill(title);
-    await page.getByLabel("Початок (за Києвом)").fill("2026-11-20T10:00");
+    await page.getByLabel("Початок (за Києвом)").fill(when.local);
     await page.getByLabel("Кількість місць").fill("2");
     await page.getByLabel("Платна подія").check();
     await page.getByLabel("Статус").selectOption("published");
@@ -92,7 +93,7 @@ test.describe("managing events and registrations", () => {
     eventId = ev.id;
     fx.track(ev.id);
     expect(ev.slug).toBe(`test-adminky-${fx.run}`);
-    expect(new Date(ev.starts_at).toISOString()).toBe("2026-11-20T08:00:00.000Z");
+    expect(new Date(ev.starts_at).toISOString()).toBe(when.utc);
     expect(Number(ev.price_uah)).toBe(300);
 
     // Saving refreshes the public cache straight away.
@@ -119,8 +120,18 @@ test.describe("managing events and registrations", () => {
 
   test("dismissing the cancel prompt changes nothing", async ({ page }) => {
     await page.goto(`/admin/events/${eventId}/registrations`);
+    const actions: string[] = [];
+    page.on("request", (r) => r.method() === "POST" && actions.push(r.url()));
     page.once("dialog", (d) => d.dismiss());
     await page.locator("tr", { hasText: "Test olena" }).getByRole("button", { name: "Скасувати" }).click();
+    await page.waitForLoadState("networkidle");
+
+    // Nothing was sent, the database is unchanged, and a fresh page still shows her confirmed.
+    expect(actions).toEqual([]);
+    const { data: contact } = await fx.db.from("contacts").select("id").eq("email", fx.email("olena")).single();
+    const { data: reg } = await fx.db.from("registrations").select("status").eq("contact_id", contact!.id).single();
+    expect(reg?.status).toBe("confirmed");
+    await page.reload();
     await expect(page.locator("tr", { hasText: "Test olena" }).getByText("Підтверджено")).toBeVisible();
   });
 
@@ -144,7 +155,7 @@ test.describe("managing events and registrations", () => {
 
   test("editing keeps Kyiv time, and a draft disappears from the site", async ({ page }) => {
     await page.goto(`/admin/events/${eventId}`);
-    await expect(page.getByLabel("Початок (за Києвом)")).toHaveValue("2026-11-20T10:00");
+    await expect(page.getByLabel("Початок (за Києвом)")).toHaveValue(when.local);
     await page.getByLabel("Статус").selectOption("draft");
     await page.getByRole("button", { name: "Зберегти" }).click();
     await expect(page).toHaveURL("/admin");

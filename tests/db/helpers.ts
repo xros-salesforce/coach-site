@@ -14,6 +14,18 @@ const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export const hasDb = Boolean(url && anonKey && serviceKey);
 
+// These tests create users, events and contacts with the service-role key. Refuse to touch anything
+// but a local database unless explicitly told to (ALLOW_REMOTE_DB_TESTS=1).
+if (hasDb && process.env.ALLOW_REMOTE_DB_TESTS !== "1") {
+  const host = new URL(url!).hostname;
+  if (!["localhost", "127.0.0.1", "::1", "[::1]"].includes(host)) {
+    throw new Error(
+      `Refusing to run database tests against ${host}: they write test data with the service-role key. ` +
+        "Point .env.local at local Supabase (npx supabase start), or set ALLOW_REMOTE_DB_TESTS=1 if you really mean it.",
+    );
+  }
+}
+
 const options = { auth: { persistSession: false, autoRefreshToken: false } };
 export const serviceClient = () => createClient(url!, serviceKey!, options);
 export const anonClient = () => createClient(url!, anonKey!, options);
@@ -115,6 +127,9 @@ export class Fixture {
 
   async cleanup() {
     if (this.eventIds.length) await this.db.from("events").delete().in("id", this.eventIds);
+    // Also catch events created through the admin UI that a failed test never got to track.
+    // `run` is "t<timestamp><random>" (letters and digits only), so it can't match real titles or slugs.
+    await this.db.from("events").delete().or(`slug.like.*${this.run}*,title.like.*${this.run}*`);
     await this.db.from("contacts").delete().like("email", `${this.run}-%`);
     for (const id of this.userIds) await this.db.auth.admin.deleteUser(id);
   }

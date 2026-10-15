@@ -20,16 +20,25 @@ describe.skipIf(!hasDb)("access rules", () => {
 
   const privateTables = ["contacts", "registrations", "payments", "admins", "settings"] as const;
 
-  async function rowsVisible(client: SupabaseClient, table: string) {
-    const { data } = await client.from(table).select("*").limit(1000);
-    return data?.length ?? 0;
+  const PERMISSION_DENIED = "42501";
+
+  async function read(client: SupabaseClient, table: string) {
+    const { data, error } = await client.from(table).select("*").limit(1000);
+    return { rows: data, code: error?.code ?? null };
+  }
+
+  // A valid row, so a refusal can only come from permissions, not from missing columns.
+  async function validEventRow() {
+    const { data: type } = await fx.db.from("event_types").select("id").eq("code", "training").single();
+    return { slug: `${fx.run}-forbidden`, title: "x", event_type_id: type!.id, capacity: 1, status: "published",
+      starts_at: new Date(Date.now() + 864e5).toISOString() };
   }
 
   describe("anonymous visitor (browser key)", () => {
     const anon = anonClient();
 
-    it.each(privateTables)("cannot read %s", async (table) => {
-      expect(await rowsVisible(anon, table)).toBe(0);
+    it.each(privateTables)("is denied access to %s", async (table) => {
+      expect(await read(anon, table)).toEqual({ rows: null, code: PERMISSION_DENIED });
     });
 
     it("sees published events but not drafts", async () => {
@@ -45,15 +54,15 @@ describe.skipIf(!hasDb)("access rules", () => {
     });
 
     it("cannot create or edit events", async () => {
-      const { error: insertError } = await anon.from("events").insert({ slug: `${fx.run}-anon`, title: "x" });
-      expect(insertError).not.toBeNull();
-      const { data } = await anon.from("events").update({ title: "hacked" }).eq("id", published.id).select();
-      expect(data ?? []).toHaveLength(0);
+      const { error: insertError } = await anon.from("events").insert(await validEventRow());
+      expect(insertError?.code).toBe(PERMISSION_DENIED);
+      const { error: updateError } = await anon.from("events").update({ title: "hacked" }).eq("id", published.id);
+      expect(updateError?.code).toBe(PERMISSION_DENIED);
     });
 
     it("cannot mark a registration as paid", async () => {
       const { error } = await anon.rpc("mark_registration_paid", { p_registration_id: paidRegistrationId });
-      expect(error).not.toBeNull();
+      expect(error?.code).toBe(PERMISSION_DENIED);
     });
 
     it("cannot upload event covers", async () => {
@@ -72,8 +81,9 @@ describe.skipIf(!hasDb)("access rules", () => {
       expect((await user.rpc("is_admin")).data).toBe(false);
     });
 
-    it.each(privateTables)("cannot read %s", async (table) => {
-      expect(await rowsVisible(user, table)).toBe(0);
+    it.each(privateTables)("sees no rows in %s", async (table) => {
+      // Allowed to query, but row-level security filters everything out.
+      expect(await read(user, table)).toEqual({ rows: [], code: null });
     });
 
     it("cannot mark a registration as paid", async () => {
@@ -84,8 +94,11 @@ describe.skipIf(!hasDb)("access rules", () => {
 
     it("cannot see drafts or edit events", async () => {
       expect((await user.from("events").select("id").eq("id", draft.id)).data).toEqual([]);
-      const { data } = await user.from("events").update({ title: "hacked" }).eq("id", published.id).select();
-      expect(data ?? []).toHaveLength(0);
+      const { data, error } = await user.from("events").update({ title: "hacked" }).eq("id", published.id).select();
+      expect(error).toBeNull();
+      expect(data).toEqual([]);
+      const { error: insertError } = await user.from("events").insert(await validEventRow());
+      expect(insertError?.code).toBe(PERMISSION_DENIED);
     });
   });
 
