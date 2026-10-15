@@ -15,7 +15,10 @@ export const site = {
   tagline: "Мама, тренерка та коуч. Допомагаю жінкам стати сильнішими — у тілі, ментально й у житті.",
   description:
     "Фітнес-тренерка у Львові: схуднення, фітнес-бікіні, натуральний бодібілдинг. Тренування, коучинг і харчування для жінок і мам. Розклад подій та запис онлайн.",
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+  // NEXT_PUBLIC_SITE_URL wins (e.g. a custom domain); on Vercel it falls back to the project's production address.
+  url:
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000"),
   instagram: { handle: "viktoria_sakson", url: "https://instagram.com/viktoria_sakson" },
   threads: "https://www.threads.com/@viktoria_sakson",
   contacts: {
