@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cacheLife } from "next/cache";
-import { site } from "@/content/site";
+import { isPlaceholder, site } from "@/content/site";
 
 // Cached so the footer stays prerenderable; refreshes daily to roll over at New Year.
 async function CopyrightYear() {
@@ -18,9 +18,11 @@ export function Footer() {
           <a href={site.instagram.url} target="_blank" rel="noopener noreferrer" className="hover:text-foreground">
             Instagram
           </a>
-          <a href={site.contacts.telegram} target="_blank" rel="noopener noreferrer" className="hover:text-foreground">
-            Telegram
-          </a>
+          {!isPlaceholder(site.contacts.telegram) && (
+            <a href={site.contacts.telegram} target="_blank" rel="noopener noreferrer" className="hover:text-foreground">
+              Telegram
+            </a>
+          )}
           <Link href="/privacy" className="hover:text-foreground">
             Політика конфіденційності
           </Link>

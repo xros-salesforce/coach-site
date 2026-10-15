@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { CalendarDays, Clock, MapPin, Users, Wallet } from "lucide-react";
@@ -40,13 +41,15 @@ async function EventDetails({ params }: Pick<PageProps<"/events/[slug]">, "param
   const event = await getEventBySlug(slug);
   if (!event) notFound();
 
+  // Request time (params were awaited above), so reading the clock here is fine.
+  const past = new Date(event.starts_at) <= new Date();
   const full = event.seats_left <= 0;
   const facts = [
     { icon: CalendarDays, text: formatDate(event.starts_at) },
     { icon: Clock, text: formatTimeRange(event.starts_at, event.ends_at) },
     event.location && { icon: MapPin, text: event.location },
     { icon: Wallet, text: formatPrice(event.price_uah) },
-    { icon: Users, text: full ? "Місць немає — можна стати в лист очікування" : `Вільно ${pluralSeats(event.seats_left)}` },
+    !past && { icon: Users, text: full ? "Місць немає — можна стати в лист очікування" : `Вільно ${pluralSeats(event.seats_left)}` },
   ].filter((f) => !!f);
 
   return (
@@ -65,9 +68,24 @@ async function EventDetails({ params }: Pick<PageProps<"/events/[slug]">, "param
         <div className="mt-8 whitespace-pre-line text-lg leading-relaxed">{event.description}</div>
       </article>
       <aside id="register" className="h-fit rounded-xl border bg-card p-6">
-        <h2 className="font-heading text-2xl font-semibold">{full ? "Лист очікування" : "Реєстрація"}</h2>
-        {/* Registration form arrives in phase 4. */}
-        <p className="mt-2 text-sm text-muted-foreground">Форма реєстрації незабаром.</p>
+        {past ? (
+          <>
+            <h2 className="font-heading text-2xl font-semibold">Подія завершилась</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Дякуємо всім, хто був! Перегляньте{" "}
+              <Link href="/events" className="text-primary underline-offset-4 hover:underline">
+                найближчі події
+              </Link>
+              .
+            </p>
+          </>
+        ) : (
+          <>
+            <h2 className="font-heading text-2xl font-semibold">{full ? "Лист очікування" : "Реєстрація"}</h2>
+            {/* Registration form arrives in phase 4. */}
+            <p className="mt-2 text-sm text-muted-foreground">Форма реєстрації незабаром.</p>
+          </>
+        )}
       </aside>
     </Section>
   );

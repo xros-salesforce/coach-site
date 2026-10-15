@@ -1,5 +1,13 @@
 // All static texts of the site live here. Edit and commit to update the site.
 // TODO(content): replace placeholders marked «…» with real texts and links.
+// Until then, pages hide unfinished links and drop unfinished «…» prompts (see isPlaceholder below), and
+// `npm run check:content` lists everything still to fill in.
+
+/** True for text that still contains a «…» placeholder. Real copy in this file never uses «». */
+export const isPlaceholder = (text: string) => /«[^»]*»/.test(text);
+
+/** Removes «…» prompts from a sentence (for paragraphs that are partly written). */
+export const withoutPlaceholders = (text: string) => text.replace(/\s*«[^»]*»/g, "").trim();
 
 export const site = {
   name: "Віка Саксон",
@@ -12,7 +20,7 @@ export const site = {
   threads: "https://www.threads.com/@viktoria_sakson",
   contacts: {
     email: "«vikasakson@gmail.com»",
-    phone: "«+380 00 000 00 00»",
+    phone: "+380 98 673 40 08",
     telegram: "https://t.me/«telegram»",
     city: "Львів",
   },

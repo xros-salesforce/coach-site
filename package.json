@@ -11,6 +11,7 @@
     "test": "vitest run --project unit",
     "test:db": "vitest run --project db",
     "test:e2e": "playwright test",
+    "check:content": "CHECK_CONTENT=1 vitest run --project unit src/content",
     "test:all": "npm run typecheck && npm run lint && vitest run && playwright test"
   },
   "dependencies": {

@@ -1,4 +1,6 @@
 import { expect, test } from "@playwright/test";
+import { placeholders } from "../../src/content/placeholders";
+import { about, services, site } from "../../src/content/site";
 import { Fixture, hasDb } from "./helpers";
 
 test.skip(!hasDb, "needs local Supabase and .env.local");
@@ -85,4 +87,40 @@ test("no page scrolls sideways on a phone", async ({ page, isMobile }) => {
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(overflow, path).toBeLessThanOrEqual(0);
   }
+});
+
+test("unfinished «…» content from site.ts never shows on a public page", async ({ page }) => {
+  // The «…» parts of every placeholder string, e.g. "«telegram»" or "«від 600 грн»".
+  const markers = placeholders({ site, about, services }).flatMap((p) => p.match(/«[^»]*»/g) ?? []);
+  for (const path of ["/", "/about", "/services", "/events", "/gallery", "/contacts", "/privacy"]) {
+    await page.goto(path);
+    const text = await page.locator("body").innerText();
+    for (const marker of markers) expect(text, `${path} shows ${marker}`).not.toContain(marker);
+    const badLinks = await page.locator('a[href*="«"], a[href*="%C2%AB"]').count();
+    expect(badLinks, `${path} has a link with a placeholder`).toBe(0);
+  }
+});
+
+test("a past event says it's over instead of offering registration", async ({ page }) => {
+  const past = await fx.createEvent({ startsInDays: -2 });
+  await page.goto(`/events/${past.slug}`);
+  await expect(page.getByRole("heading", { name: "Подія завершилась" })).toBeVisible();
+  await expect(page.getByText(/Вільно \d+/)).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Реєстрація" })).toHaveCount(0);
+});
+
+test("the phone menu closes after choosing a page or tapping outside", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "mobile only");
+  const menu = page.locator("header details");
+  await page.goto("/");
+  await page.getByLabel("Меню").click();
+  await expect(menu).toHaveAttribute("open", "");
+  await menu.getByRole("link", { name: "Події", exact: true }).click();
+  await expect(page).toHaveURL("/events");
+  await expect(menu).not.toHaveAttribute("open");
+
+  await page.getByLabel("Меню").click();
+  await expect(menu).toHaveAttribute("open", "");
+  await page.mouse.click(20, 600); // empty space, well away from the dropdown
+  await expect(menu).not.toHaveAttribute("open");
 });

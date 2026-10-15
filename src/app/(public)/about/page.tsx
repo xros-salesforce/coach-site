@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { PageHero, PageHeroEyebrow } from "@/components/site/page-hero";
 import { Section } from "@/components/site/section";
-import { about } from "@/content/site";
+import { about, withoutPlaceholders } from "@/content/site";
 
 export const metadata: Metadata = { title: "Про мене" };
 
@@ -18,13 +18,13 @@ export default function AboutPage() {
       <Section className="grid gap-10 md:grid-cols-[1fr_320px] md:gap-14">
         <div>
           <div className="space-y-4 text-lg leading-relaxed">
-            {about.paragraphs.map((p) => (
+            {about.paragraphs.map(withoutPlaceholders).filter(Boolean).map((p) => (
               <p key={p}>{p}</p>
             ))}
           </div>
           <dl className="mt-12 grid grid-cols-3 gap-4 text-center">
             {about.highlights.map((h) => (
-              <div key={h.label} className="rounded-xl bg-accent/50 p-4">
+              <div key={h.label} className="flex flex-col rounded-xl bg-accent/50 p-4">
                 <dt className="text-sm text-muted-foreground">{h.label}</dt>
                 <dd className="order-first font-heading text-3xl font-semibold text-primary">{h.value}</dd>
               </div>

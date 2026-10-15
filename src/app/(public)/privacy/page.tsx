@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Section } from "@/components/site/section";
-import { site } from "@/content/site";
+import { isPlaceholder, site } from "@/content/site";
 
 export const metadata: Metadata = { title: "Політика конфіденційності" };
 
@@ -23,7 +23,13 @@ export default function PrivacyPage() {
       <h2 className="font-heading text-2xl font-semibold">Ваші права</h2>
       <p>
         Ви можете відкликати згоду на розсилку за посиланням у будь-якому листі, а також попросити видалити ваші дані,
-        написавши на {site.contacts.email}.
+        написавши на{" "}
+        {isPlaceholder(site.contacts.email) ? (
+          <a href={site.instagram.url} className="underline">Instagram @{site.instagram.handle}</a>
+        ) : (
+          <a href={`mailto:${site.contacts.email}`} className="underline">{site.contacts.email}</a>
+        )}
+        .
       </p>
     </Section>
   );

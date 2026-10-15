@@ -3,7 +3,7 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Section, SectionTitle } from "@/components/site/section";
-import { services } from "@/content/site";
+import { isPlaceholder, services } from "@/content/site";
 
 export const metadata: Metadata = { title: "Послуги" };
 
@@ -18,7 +18,7 @@ export default function ServicesPage() {
               <CardTitle className="font-heading text-2xl">{s.title}</CardTitle>
             </CardHeader>
             <CardContent className="flex-1 text-muted-foreground">{s.text}</CardContent>
-            <CardFooter className="font-medium text-primary">{s.price}</CardFooter>
+            <CardFooter className="font-medium text-primary">{isPlaceholder(s.price) ? "Ціна за запитом" : s.price}</CardFooter>
           </Card>
         ))}
       </div>
