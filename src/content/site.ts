@@ -19,9 +19,8 @@ export const site = {
   instagram: { handle: "viktoria_sakson", url: "https://instagram.com/viktoria_sakson" },
   threads: "https://www.threads.com/@viktoria_sakson",
   contacts: {
-    email: "«vikasakson@gmail.com»",
+    email: "vikasakson@gmail.com",
     phone: "+380 98 673 40 08",
-    telegram: "https://t.me/«telegram»",
     city: "Львів",
   },
 } as const;

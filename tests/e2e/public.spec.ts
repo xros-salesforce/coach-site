@@ -90,7 +90,7 @@ test("no page scrolls sideways on a phone", async ({ page, isMobile }) => {
 });
 
 test("unfinished «…» content from site.ts never shows on a public page", async ({ page }) => {
-  // The «…» parts of every placeholder string, e.g. "«telegram»" or "«від 600 грн»".
+  // The «…» parts of every placeholder string, e.g. "«від 600 грн»".
   const markers = placeholders({ site, about, services }).flatMap((p) => p.match(/«[^»]*»/g) ?? []);
   for (const path of ["/", "/about", "/services", "/events", "/gallery", "/contacts", "/privacy"]) {
     await page.goto(path);
