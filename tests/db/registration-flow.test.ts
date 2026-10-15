@@ -90,6 +90,68 @@ describe.skipIf(!hasDb)("registration flow", () => {
     });
   });
 
+  describe("editing an event", () => {
+    const statuses = async (ids: string[]) =>
+      Promise.all(ids.map(async (id) => (await fx.registration(id)).status));
+
+    it("adding seats gives them to the waitlist in order (also when an admin edits)", async () => {
+      const admin = await fx.signedInClient("seat-admin", { admin: true });
+      const event = await fx.createEvent({ capacity: 1 });
+      const ids = [];
+      for (const label of ["grow-0", "grow-1", "grow-2", "grow-3"]) ids.push((await fx.registerOk(event.id, label)).registration_id);
+      expect(await statuses(ids)).toEqual(["confirmed", "waitlist", "waitlist", "waitlist"]);
+
+      const { error } = await admin.from("events").update({ capacity: 3 }).eq("id", event.id);
+      expect(error).toBeNull();
+      expect(await statuses(ids)).toEqual(["confirmed", "confirmed", "confirmed", "waitlist"]);
+      expect(await seatsLeft(event.id)).toBe(0);
+    });
+
+    it("promoted people on a paid event get a payment hold", async () => {
+      const event = await fx.createEvent({ capacity: 1, price: 200 });
+      await fx.registerOk(event.id, "paid-grow-0");
+      const waiting = await fx.registerOk(event.id, "paid-grow-1");
+      await fx.db.from("events").update({ capacity: 2 }).eq("id", event.id);
+      const reg = await fx.registration(waiting.registration_id);
+      expect(reg.status).toBe("pending_payment");
+      expect(reg.hold_expires_at).not.toBeNull();
+    });
+
+    it("making a paid event free confirms everyone waiting to pay", async () => {
+      const event = await fx.createEvent({ capacity: 2, price: 300 });
+      const holder = await fx.registerOk(event.id, "to-free");
+      await fx.db.from("events").update({ is_paid: false, price_uah: null }).eq("id", event.id);
+      const reg = await fx.registration(holder.registration_id);
+      expect([reg.status, reg.hold_expires_at, reg.amount_uah]).toEqual(["confirmed", null, null]);
+      const { data: payment } = await fx.db.from("payments").select("status").eq("registration_id", holder.registration_id).single();
+      expect(payment?.status).toBe("failed");
+    });
+
+    it("making a free event paid keeps confirmed people confirmed", async () => {
+      const event = await fx.createEvent({ capacity: 2 });
+      const early = await fx.registerOk(event.id, "to-paid");
+      await fx.db.from("events").update({ is_paid: true, price_uah: 250 }).eq("id", event.id);
+      expect((await fx.registration(early.registration_id)).status).toBe("confirmed");
+    });
+
+    it("removing seats never removes anyone", async () => {
+      const event = await fx.createEvent({ capacity: 2 });
+      const a = await fx.registerOk(event.id, "shrink-a");
+      const b = await fx.registerOk(event.id, "shrink-b");
+      await fx.db.from("events").update({ capacity: 1 }).eq("id", event.id);
+      expect(await statuses([a.registration_id, b.registration_id])).toEqual(["confirmed", "confirmed"]);
+      expect((await fx.registerOk(event.id, "shrink-c")).status).toBe("waitlist");
+    });
+
+    it("a cancelled event doesn't promote anyone", async () => {
+      const event = await fx.createEvent({ capacity: 1 });
+      await fx.registerOk(event.id, "cxl-a");
+      const waiting = await fx.registerOk(event.id, "cxl-b");
+      await fx.db.from("events").update({ status: "cancelled", capacity: 5 }).eq("id", event.id);
+      expect((await fx.registration(waiting.registration_id)).status).toBe("waitlist");
+    });
+  });
+
   describe("who can register", () => {
     it("refuses the same person twice", async () => {
       const event = await fx.createEvent();
