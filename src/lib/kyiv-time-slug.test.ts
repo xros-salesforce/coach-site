@@ -19,6 +19,23 @@ describe("Kyiv time conversion", () => {
     }
   });
 
+  it("rejects times skipped when clocks go forward (29 Mar 2026, 03:00–03:59)", () => {
+    expect(fromKyivInput("2026-03-29T02:59")).toBe("2026-03-29T00:59:00.000Z");
+    expect(fromKyivInput("2026-03-29T03:00")).toBeNull();
+    expect(fromKyivInput("2026-03-29T03:30")).toBeNull();
+    expect(fromKyivInput("2026-03-29T04:00")).toBe("2026-03-29T01:00:00.000Z");
+  });
+
+  it("uses the earlier moment in the repeated autumn hour (25 Oct 2026, 03:00–03:59)", () => {
+    expect(fromKyivInput("2026-10-25T03:30")).toBe("2026-10-25T00:30:00.000Z");
+    expect(fromKyivInput("2026-10-25T04:00")).toBe("2026-10-25T02:00:00.000Z");
+  });
+
+  it("rejects dates that don't exist", () => {
+    expect(fromKyivInput("2026-02-30T10:00")).toBeNull();
+    expect(fromKyivInput("2026-13-01T10:00")).toBeNull();
+  });
+
   it("rejects malformed input", () => {
     expect(fromKyivInput("")).toBeNull();
     expect(fromKyivInput("01.07.2026 09:00")).toBeNull();

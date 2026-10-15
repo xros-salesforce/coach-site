@@ -101,6 +101,52 @@ test.describe("managing events and registrations", () => {
     await expect(page.getByText(title)).toBeVisible();
   });
 
+  test("a large phone photo is shrunk before upload, and replacing it deletes the old file", async ({ page }) => {
+    test.setTimeout(120_000);
+    // A noisy 4000×3000 JPEG: several MB, well over the 1 MB default limit for server actions.
+    const bigJpeg = async () =>
+      Buffer.from(
+        await page.evaluate(async () => {
+          const canvas = Object.assign(document.createElement("canvas"), { width: 4000, height: 3000 });
+          const ctx = canvas.getContext("2d")!;
+          const img = ctx.createImageData(4000, 3000);
+          for (let i = 0; i < img.data.length; i++) img.data[i] = (i % 4 === 3) ? 255 : Math.random() * 255;
+          ctx.putImageData(img, 0, 0);
+          const blob = await new Promise<Blob>((r) => canvas.toBlob((b) => r(b!), "image/jpeg", 0.95));
+          // Return base64: far cheaper to pass back to the test than an array of numbers.
+          const dataUrl = await new Promise<string>((r) => {
+            const reader = new FileReader();
+            reader.onload = () => r(reader.result as string);
+            reader.readAsDataURL(blob);
+          });
+          return dataUrl.slice(dataUrl.indexOf(",") + 1);
+        }),
+        "base64",
+      );
+    const coverPath = async () =>
+      (await fx.db.from("events").select("cover_image_path").eq("id", eventId).single()).data!.cover_image_path as string | null;
+
+    const upload = async () => {
+      await page.goto(`/admin/events/${eventId}`);
+      const original = await bigJpeg();
+      expect(original.length).toBeGreaterThan(2 * 1024 * 1024);
+      await page.locator("#cover").setInputFiles({ name: "phone.jpg", mimeType: "image/jpeg", buffer: original });
+      await expect(page.getByRole("button", { name: "Зберегти" })).toBeEnabled({ timeout: 20_000 });
+      const sent = await page.locator("#cover").evaluate((el: HTMLInputElement) => ({ type: el.files![0].type, size: el.files![0].size }));
+      expect(sent.type).toBe("image/webp");
+      expect(sent.size).toBeLessThan(original.length);
+      await page.getByRole("button", { name: "Зберегти" }).click();
+      await expect(page).toHaveURL("/admin");
+      return coverPath();
+    };
+
+    const first = await upload();
+    expect(first).toMatch(/\.webp$/);
+    const second = await upload();
+    expect(second).not.toBe(first);
+    expect((await fx.coverFiles()).filter((name) => name.includes(fx.run))).toEqual([second]);
+  });
+
   test("mark as paid, cancel, and the waitlist moves up", async ({ page }) => {
     for (const label of ["olena", "maria", "iryna"]) await fx.registerOk(eventId, label, { consent: label === "olena" });
     await page.goto(`/admin/events/${eventId}/registrations`);

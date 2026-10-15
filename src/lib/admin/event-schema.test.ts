@@ -82,6 +82,39 @@ describe("parseEventForm", () => {
     expect(result.ok ? null : result.errors.slug).toBe("Адреса має містити літери або цифри");
   });
 
+  it.each(["http://zoom.us/j/1", "javascript:alert(1)", "ftp://files.example.com", "https://localhost"])(
+    "refuses online link %s",
+    (online_url) => {
+      const result = parseEventForm(form({ online_url }));
+      expect(result.ok ? null : result.errors.online_url).toBe("Посилання має починатися з https://");
+    },
+  );
+
+  it("accepts an https meeting link", () => {
+    const result = parseEventForm(form({ online_url: "https://zoom.us/j/123" }));
+    expect(result.ok && result.data.online_url).toBe("https://zoom.us/j/123");
+  });
+
+  it.each([
+    ["Infinity", "Вкажіть ціну в гривнях"],
+    ["abc", "Вкажіть ціну в гривнях"],
+    ["-5", "Вкажіть ціну в гривнях"],
+    ["1000001", "Ціна завелика — перевірте суму"],
+  ])("refuses price %s", (price_uah, message) => {
+    const result = parseEventForm(form({ is_paid: "on", price_uah }));
+    expect(result.ok ? null : result.errors.price_uah).toBe(message);
+  });
+
+  it("reports a malformed end time instead of dropping it", () => {
+    const result = parseEventForm(form({ ends_at: "20.11.2026 12:00" }));
+    expect(result.ok ? null : result.errors.ends_at).toBe("Перевірте дату й час кінця");
+  });
+
+  it("explains a start time skipped when clocks go forward", () => {
+    const result = parseEventForm(form({ starts_at: "2026-03-29T03:30" }));
+    expect(result.ok ? null : result.errors.starts_at).toMatch(/^Такого часу немає/);
+  });
+
   it("only allows known statuses", () => {
     expect(parseEventForm(form({ status: "deleted" })).ok).toBe(false);
   });

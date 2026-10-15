@@ -125,8 +125,19 @@ export class Fixture {
     return client;
   }
 
+  /** Names of all files in the event-covers bucket. */
+  async coverFiles() {
+    const { data, error } = await this.db.storage.from("event-covers").list("", { limit: 1000 });
+    if (error) throw error;
+    return data.map((f) => f.name);
+  }
+
   async cleanup() {
     if (this.eventIds.length) await this.db.from("events").delete().in("id", this.eventIds);
+    // Cover files uploaded during tests are named "<slug>-<timestamp>.<ext>", and test slugs contain `run`.
+    // (Storage `search` only matches prefixes, so list and filter here.)
+    const ours = (await this.coverFiles()).filter((name) => name.includes(this.run));
+    if (ours.length) await this.db.storage.from("event-covers").remove(ours);
     // Also catch events created through the admin UI that a failed test never got to track.
     // `run` is "t<timestamp><random>" (letters and digits only), so it can't match real titles or slugs.
     await this.db.from("events").delete().or(`slug.like.*${this.run}*,title.like.*${this.run}*`);

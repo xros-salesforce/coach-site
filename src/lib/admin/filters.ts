@@ -9,7 +9,10 @@ export function contactFilters(sp: Record<string, string | string[] | undefined>
   return { q: get("q"), interest: get("interest"), consent: get("consent") === "1" };
 }
 
-/** Strips characters that have meaning in PostgREST filter syntax, so a search can't alter the query. */
+/**
+ * Strips characters that have meaning in PostgREST filter syntax (separators, grouping, quoting,
+ * wildcards), so a search can't alter the query. "_" stays: as a LIKE wildcard it only widens matches.
+ */
 export function searchTerm(q: string | undefined) {
-  return q?.replace(/[,()*%\\]/g, " ").trim() || undefined;
+  return q?.replace(/[,()*%\\"]/g, " ").trim() || undefined;
 }

@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { csvResponse, toCsv } from "./csv";
 
 describe("toCsv", () => {
-  it("starts with a BOM so Excel reads Cyrillic, and quotes every field", () => {
+  it("starts with a BOM so Excel reads Cyrillic, separates with semicolons and quotes every field", () => {
     const csv = toCsv(["Ім'я", "Email"], [["Олена", "o@example.com"]]);
-    expect(csv).toBe('﻿"Ім\'я","Email"\r\n"Олена","o@example.com"\r\n');
+    expect(csv).toBe('﻿"Ім\'я";"Email"\r\n"Олена";"o@example.com"\r\n');
   });
 
   it("escapes quotes and keeps commas and line breaks inside a field", () => {
@@ -13,7 +13,7 @@ describe("toCsv", () => {
   });
 
   it("writes empty cells for null and undefined", () => {
-    expect(toCsv(["a", "b", "c"], [[null, undefined, 0]])).toContain('"","","0"');
+    expect(toCsv(["a", "b", "c"], [[null, undefined, 0]])).toContain('"";"";"0"');
   });
 
   it("neutralises values that a spreadsheet would run as formulas", () => {
@@ -25,7 +25,7 @@ describe("toCsv", () => {
 
   it("leaves phone numbers and negative amounts readable", () => {
     const csv = toCsv(["phone", "amount"], [["+380 67 123 45 67", "-150.50"]]);
-    expect(csv).toContain('"+380 67 123 45 67","-150.50"');
+    expect(csv).toContain('"+380 67 123 45 67";"-150.50"');
   });
 });
 

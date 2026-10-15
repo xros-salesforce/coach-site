@@ -1,4 +1,5 @@
 import "server-only";
+import { z } from "zod";
 import { requireAdmin } from "@/lib/admin/auth";
 import { type ContactFilters, searchTerm } from "@/lib/admin/filters";
 import { createSessionClient } from "@/lib/supabase/server";
@@ -29,6 +30,8 @@ export type AdminEvent = {
 
 export type EventType = { id: string; code: string; name: string; is_paid_default: boolean };
 
+const isUuid = (v: string) => z.uuid().safeParse(v).success;
+
 async function db() {
   await requireAdmin();
   return createSessionClient();
@@ -50,7 +53,9 @@ export async function listEvents() {
 }
 
 export async function getEvent(id: string) {
-  const { data, error } = await (await db()).from("events").select("*").eq("id", id).maybeSingle();
+  const client = await db();
+  if (!isUuid(id)) return null; // e.g. /admin/events/abc → 404, not a database error
+  const { data, error } = await client.from("events").select("*").eq("id", id).maybeSingle();
   if (error) throw error;
   return data as AdminEvent | null;
 }
@@ -76,7 +81,9 @@ export type AdminRegistration = {
 };
 
 export async function listRegistrations(eventId: string) {
-  const { data, error } = await (await db())
+  const client = await db();
+  if (!isUuid(eventId)) return [];
+  const { data, error } = await client
     .from("registrations")
     .select(
       "id, status, comment, amount_uah, hold_expires_at, created_at, contacts(full_name, email, phone, instagram_handle), payments(status, paid_at)",

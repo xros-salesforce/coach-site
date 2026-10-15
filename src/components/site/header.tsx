@@ -10,7 +10,7 @@ export function Header() {
         <Link href="/" className="flex items-center gap-3 font-heading text-2xl font-semibold tracking-tight">
           <Image
             src="/images/logo.jpg"
-            alt={site.name}
+            alt="" // decorative: the visible name next to it already labels the link
             width={40}
             height={40}
             loading="eager"

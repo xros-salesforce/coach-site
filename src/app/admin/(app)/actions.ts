@@ -18,7 +18,9 @@ export type EventFormState = {
 };
 
 const COVER_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
-const COVER_MAX_BYTES = 5 * 1024 * 1024;
+// The browser shrinks photos before upload (see compress-image.ts); this is the server-side safety net.
+// Must stay below serverActions.bodySizeLimit in next.config.ts.
+const COVER_MAX_BYTES = 4 * 1024 * 1024;
 
 export async function saveEvent(prev: EventFormState, formData: FormData): Promise<EventFormState> {
   await requireAdmin();
@@ -35,26 +37,40 @@ export async function saveEvent(prev: EventFormState, formData: FormData): Promi
   if (!parsed.ok) return fail({ errors: parsed.errors });
 
   const supabase = await createSessionClient();
+  const covers = supabase.storage.from("event-covers");
+  // Deleting needs read access to storage.objects, which only the service role has (covers are
+  // served from the public bucket URL, so there is no read policy). requireAdmin() above authorises it.
+  const removeCover = (path: string) => createServiceClient().storage.from("event-covers").remove([path]);
   const values: Record<string, unknown> = { ...parsed.data };
+  let uploaded: string | null = null;
 
   const cover = formData.get("cover");
   if (cover instanceof File && cover.size > 0) {
     const ext = COVER_TYPES[cover.type];
     if (!ext) return fail({ errors: { cover: "Підходять JPG, PNG або WebP" } });
-    if (cover.size > COVER_MAX_BYTES) return fail({ errors: { cover: "Файл більший за 5 МБ" } });
+    if (cover.size > COVER_MAX_BYTES) return fail({ errors: { cover: "Файл більший за 4 МБ" } });
     const path = `${parsed.data.slug}-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("event-covers").upload(path, cover, { contentType: cover.type });
+    const { error } = await covers.upload(path, cover, { contentType: cover.type });
     if (error) return fail({ message: `Не вдалося завантажити обкладинку: ${error.message}` });
-    values.cover_image_path = path;
+    values.cover_image_path = uploaded = path;
   } else if (formData.get("remove_cover") === "on") {
     values.cover_image_path = null;
   }
 
+  // The cover being replaced or removed, deleted from Storage once the new row is saved.
+  const previousCover = id && "cover_image_path" in values
+    ? (await supabase.from("events").select("cover_image_path").eq("id", id).maybeSingle()).data?.cover_image_path
+    : null;
+
   const { error } = id
     ? await supabase.from("events").update(values).eq("id", id)
     : await supabase.from("events").insert(values);
-  if (error?.code === "23505") return fail({ errors: { slug: "Така адреса вже зайнята іншою подією" } });
-  if (error) return fail({ message: `Не вдалося зберегти: ${error.message}` });
+  if (error) {
+    if (uploaded) await removeCover(uploaded); // don't leave an orphaned file behind
+    if (error.code === "23505") return fail({ errors: { slug: "Така адреса вже зайнята іншою подією" } });
+    return fail({ message: `Не вдалося зберегти: ${error.message}` });
+  }
+  if (previousCover && previousCover !== values.cover_image_path) await removeCover(previousCover);
 
   updateTag(EVENTS_TAG);
   redirect("/admin");

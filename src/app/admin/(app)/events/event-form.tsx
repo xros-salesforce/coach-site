@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { cloneElement, useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { AdminEvent, EventType } from "@/lib/admin/data";
+import { compressImage } from "@/lib/compress-image";
 import { type EventFormState, saveEvent } from "../actions";
 
 export type EventFormDefaults = Omit<AdminEvent, "starts_at" | "ends_at"> & { starts_at: string; ends_at: string };
@@ -23,6 +24,7 @@ export function EventForm({
   coverUrl?: string | null;
 }) {
   const [state, action, pending] = useActionState(saveEvent, {} as EventFormState);
+  const [compressing, setCompressing] = useState(false);
   const err = state.errors ?? {};
   // After a failed save, refill from what was submitted; otherwise from the saved event.
   const v = (key: string, fallback: string | number | null | undefined) => state.values?.[key] ?? String(fallback ?? "");
@@ -38,6 +40,7 @@ export function EventForm({
         err={err}
         v={v}
         initialPaid={state.values ? state.values.is_paid === "on" : (event?.is_paid ?? false)}
+        onCompressing={setCompressing}
       />
 
       {(state.message || Object.keys(err).length > 0) && (
@@ -45,8 +48,8 @@ export function EventForm({
           {state.message ?? "Перевірте поля, позначені червоним."}
         </p>
       )}
-      <Button type="submit" disabled={pending} className="h-10 px-6">
-        {pending ? "Зберігаємо…" : "Зберегти"}
+      <Button type="submit" disabled={pending || compressing} className="h-10 px-6">
+        {pending ? "Зберігаємо…" : compressing ? "Готуємо фото…" : "Зберегти"}
       </Button>
     </form>
   );
@@ -59,6 +62,7 @@ function Fields({
   err,
   v,
   initialPaid,
+  onCompressing,
 }: {
   event?: EventFormDefaults;
   eventTypes: EventType[];
@@ -66,8 +70,27 @@ function Fields({
   err: Record<string, string>;
   v: (key: string, fallback: string | number | null | undefined) => string;
   initialPaid: boolean;
+  onCompressing: (busy: boolean) => void;
 }) {
   const [isPaid, setIsPaid] = useState(initialPaid);
+
+  // Swap the chosen photo for a smaller WebP before the form is submitted.
+  async function shrinkCover(e: React.ChangeEvent<HTMLInputElement>) {
+    const input = e.currentTarget;
+    const file = input.files?.[0];
+    if (!file) return;
+    onCompressing(true);
+    try {
+      const small = await compressImage(file);
+      if (small !== file) {
+        const files = new DataTransfer();
+        files.items.add(small);
+        input.files = files.files;
+      }
+    } finally {
+      onCompressing(false);
+    }
+  }
 
   return (
     <>
@@ -163,8 +186,8 @@ function Fields({
             </label>
           </div>
         )}
-        <Field label={coverUrl ? "Замінити фото" : "Фото"} name="cover" error={err.cover} hint="JPG, PNG або WebP до 5 МБ">
-          <Input id="cover" name="cover" type="file" accept="image/jpeg,image/png,image/webp" className="h-10" />
+        <Field label={coverUrl ? "Замінити фото" : "Фото"} name="cover" error={err.cover} hint="JPG, PNG або WebP. Великі фото зменшуються автоматично.">
+          <Input id="cover" name="cover" type="file" accept="image/jpeg,image/png,image/webp" onChange={shrinkCover} className="h-10" />
         </Field>
       </Fieldset>
 
@@ -204,13 +227,20 @@ function Field({
   error?: string;
   hint?: string;
   className?: string;
-  children: React.ReactNode;
+  children: React.ReactElement<React.AriaAttributes>;
 }) {
+  // Link the message to the control so screen readers announce it, and flag the control as invalid.
+  const messageId = error || hint ? `${name}-message` : undefined;
+  const control = cloneElement(children, { "aria-invalid": error ? true : undefined, "aria-describedby": messageId });
   return (
     <div className={`space-y-1.5 ${className ?? ""}`}>
       <Label htmlFor={name}>{label}</Label>
-      {children}
-      {error ? <p className="text-sm text-destructive">{error}</p> : hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+      {control}
+      {error ? (
+        <p id={messageId} className="text-sm text-destructive">{error}</p>
+      ) : (
+        hint && <p id={messageId} className="text-xs text-muted-foreground">{hint}</p>
+      )}
     </div>
   );
 }

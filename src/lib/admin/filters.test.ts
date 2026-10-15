@@ -24,6 +24,7 @@ describe("searchTerm", () => {
   it("removes characters that would change the database filter", () => {
     expect(searchTerm("a,b)(c*%\\d")).toBe("a b  c   d");
     expect(searchTerm("email.ilike.*x*,full_name.eq.y")).toBe("email.ilike. x  full_name.eq.y");
+    expect(searchTerm('Олена "Сильна"')).toBe("Олена  Сильна");
   });
 
   it("returns undefined for blank input", () => {

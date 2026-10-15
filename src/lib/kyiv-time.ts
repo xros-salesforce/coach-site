@@ -25,9 +25,15 @@ export function toKyivInput(iso: string | null | undefined) {
   return `${y}-${pad(m)}-${pad(d)}T${pad(h)}:${pad(min)}`;
 }
 
-/** "YYYY-MM-DDTHH:mm" on a Kyiv wall clock → ISO timestamp (UTC), or null if malformed. */
+export const KYIV_INPUT_FORMAT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/;
+
+/**
+ * "YYYY-MM-DDTHH:mm" on a Kyiv wall clock → ISO timestamp (UTC). Returns null if malformed, if the
+ * date doesn't exist (e.g. 30 February), or if the time is skipped when clocks go forward in spring.
+ * During the repeated autumn hour, the earlier of the two moments is used.
+ */
 export function fromKyivInput(local: string) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(local);
+  const match = KYIV_INPUT_FORMAT.exec(local);
   if (!match) return null;
   const [y, m, d, h, min] = match.slice(1).map(Number);
   const wanted = Date.UTC(y, m - 1, d, h, min);
@@ -38,5 +44,9 @@ export function fromKyivInput(local: string) {
     const p = kyivParts(new Date(guess));
     guess += wanted - Date.UTC(p.y, p.m - 1, p.d, p.h, p.min);
   }
-  return new Date(guess).toISOString();
+  // Round-trip check rejects impossible dates and times that fall in the spring DST gap.
+  if (toKyivInput(new Date(guess).toISOString()) !== local) return null;
+  // In the repeated autumn hour the same wall time occurs twice; prefer the earlier (summer-time) one.
+  const hourEarlier = new Date(guess - 36e5).toISOString();
+  return toKyivInput(hourEarlier) === local ? hourEarlier : new Date(guess).toISOString();
 }

@@ -1,5 +1,8 @@
-// CSV for Excel/Google Sheets: BOM so Excel reads UTF-8 Cyrillic, quoted fields, and a leading
-// apostrophe on values that would otherwise be run as formulas (CSV injection).
+// CSV for Excel/Google Sheets: BOM so Excel reads UTF-8 Cyrillic; ";" because Excel with Ukrainian
+// regional settings uses it as the list separator (Google Sheets and Numbers detect it); quoted
+// fields; and a leading apostrophe on values that would otherwise be run as formulas (CSV injection).
+export const SEPARATOR = ";";
+
 export function toCsv(header: string[], rows: (string | number | null | undefined)[][]) {
   const cell = (v: string | number | null | undefined) => {
     let s = v == null ? "" : String(v);
@@ -7,7 +10,7 @@ export function toCsv(header: string[], rows: (string | number | null | undefine
     if (/^[=+\-@\t\r]/.test(s) && !/^[+-][\d\s().-]+$/.test(s)) s = `'${s}`;
     return `"${s.replace(/"/g, '""')}"`;
   };
-  return "﻿" + [header, ...rows].map((r) => r.map(cell).join(",")).join("\r\n") + "\r\n";
+  return "\uFEFF" + [header, ...rows].map((r) => r.map(cell).join(SEPARATOR)).join("\r\n") + "\r\n";
 }
 
 export function csvResponse(filename: string, body: string) {
