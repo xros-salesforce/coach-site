@@ -23,7 +23,9 @@ export function EventCard({ event }: { event: PublicEvent }) {
       <CardContent className="flex-1 space-y-2 text-sm text-muted-foreground">
         <p className="flex items-center gap-2">
           <CalendarDays className="size-4 shrink-0" />
-          <span className="first-letter:uppercase">{formatDate(event.starts_at)}</span>, {formatTimeRange(event.starts_at, event.ends_at)}
+          <span>
+            <span className="inline-block first-letter:uppercase">{formatDate(event.starts_at)}</span>, {formatTimeRange(event.starts_at, event.ends_at)}
+          </span>
         </p>
         {event.location && (
           <p className="flex items-center gap-2">

@@ -65,6 +65,8 @@ export function Turnstile({
         widgetId.current = window.turnstile.render(container.current, {
           sitekey: siteKey,
           language: "uk",
+          // The normal widget is a fixed 300px; on the narrowest phones it would stick out of the form.
+          size: container.current.clientWidth < 300 ? "compact" : "normal",
           callback: (token: string) => onTokenRef.current(token),
           "expired-callback": () => onTokenRef.current(null),
           "error-callback": () => onTokenRef.current(null),

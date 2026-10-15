@@ -22,7 +22,7 @@ export default function AboutPage() {
               <p key={p}>{p}</p>
             ))}
           </div>
-          <dl className="mt-12 grid grid-cols-3 gap-4 text-center">
+          <dl className="mt-12 grid gap-4 text-center sm:grid-cols-3">
             {about.highlights.map((h) => (
               <div key={h.label} className="flex flex-col rounded-xl bg-accent/50 p-4">
                 <dt className="text-sm text-muted-foreground">{h.label}</dt>
