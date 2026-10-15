@@ -20,6 +20,8 @@ NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
 SUPABASE_SERVICE_ROLE_KEY=<service_role key>
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
+# Cloudflare Turnstile test key (always passes; pairs with the test secret in supabase/config.toml)
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA
 ```
 
 Useful local URLs: Supabase Studio http://127.0.0.1:54323 · captured emails (Mailpit) http://127.0.0.1:54324
@@ -33,6 +35,24 @@ node --env-file=.env.local scripts/add-admin.mts someone@example.com
 ```
 
 Locally the sign-in email lands in Mailpit, not a real inbox.
+
+Protection against someone spamming an admin's address (each new link cancels the previous one):
+
+- Supabase Auth requires a Cloudflare Turnstile token for every sign-in request, including direct API calls
+  with the public key (`[auth.captcha]` in `supabase/config.toml`).
+- Sign-in links are requested from the browser, so Supabase's per-IP limits apply to the visitor.
+- At most one email per address per minute (`max_frequency`).
+- The emailed link opens a page with an "Увійти" button, so email scanners can't use it up.
+
+### Going live checklist (Supabase dashboard + hosting env)
+
+1. Create a Turnstile widget for the site's domain at Cloudflare (free). Put the site key in
+   `NEXT_PUBLIC_TURNSTILE_SITE_KEY`; enter the secret in Supabase → Auth → Bot and Abuse Protection (Turnstile).
+2. Auth → Email: paste `supabase/templates/magic_link.html` as the Magic Link template; set the minimum
+   interval between emails to 60 s; keep "Allow new users to sign up" off.
+3. Auth → URL configuration: set the Site URL to the live domain.
+4. Set up custom SMTP (e.g. Resend): Supabase's built-in mailer only emails project team members.
+5. Create the admin accounts against the live project with `scripts/add-admin.mts`.
 
 ## Content
 

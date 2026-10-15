@@ -65,6 +65,12 @@ describe.skipIf(!hasDb)("access rules", () => {
       expect(error?.code).toBe(PERMISSION_DENIED);
     });
 
+    it("cannot request sign-in links from the auth API without solving the spam check", async () => {
+      // Someone calling Supabase directly with the public key (bypassing the login form).
+      const { error } = await anon.auth.signInWithOtp({ email: fx.email("spam"), options: { shouldCreateUser: false } });
+      expect(error?.message).toMatch(/captcha/i);
+    });
+
     it("cannot upload event covers", async () => {
       const { error } = await anon.storage.from("event-covers").upload(`${fx.run}.txt`, new Blob(["x"]), { contentType: "text/plain" });
       expect(error).not.toBeNull();

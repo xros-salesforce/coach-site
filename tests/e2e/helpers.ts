@@ -17,9 +17,16 @@ export function kyivDateTime(days: number, hhmm = "10:00") {
   return { local, utc: new Date(`${local}:00${offset}`).toISOString() };
 }
 
-/** Signs the browser in as `email` by following a one-time sign-in link (same as the email button). */
-export async function signIn(page: Page, fx: Fixture, email: string) {
+/** The URL in the sign-in email for `email` (one-time). */
+export async function signInLink(fx: Fixture, email: string) {
   const { data, error } = await fx.db.auth.admin.generateLink({ type: "magiclink", email });
   if (error) throw error;
-  await page.goto(`/auth/confirm?token_hash=${data.properties.hashed_token}&type=email&next=/admin`);
+  return `/auth/confirm?token_hash=${data.properties.hashed_token}&type=email&next=/admin`;
+}
+
+/** Signs the browser in as `email`: opens the emailed link and presses "Увійти", like a person would. */
+export async function signIn(page: Page, fx: Fixture, email: string) {
+  await page.goto(await signInLink(fx, email));
+  await page.getByRole("button", { name: "Увійти" }).click();
+  await page.waitForURL((url) => url.pathname !== "/auth/confirm");
 }

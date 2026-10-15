@@ -27,6 +27,9 @@ if (hasDb && process.env.ALLOW_REMOTE_DB_TESTS !== "1") {
 }
 
 const options = { auth: { persistSession: false, autoRefreshToken: false } };
+
+// Local Supabase checks sign-ins with Cloudflare's Turnstile test secret, which accepts this dummy token.
+export const TEST_CAPTCHA_TOKEN = "XXXX.DUMMY.TOKEN.XXXX";
 export const serviceClient = () => createClient(url!, serviceKey!, options);
 export const anonClient = () => createClient(url!, anonKey!, options);
 
@@ -120,7 +123,7 @@ export class Fixture {
   async signedInClient(label: string, { admin = false } = {}) {
     const { email, password } = await this.createUser(label, { admin });
     const client = anonClient();
-    const { error: signInError } = await client.auth.signInWithPassword({ email, password });
+    const { error: signInError } = await client.auth.signInWithPassword({ email, password, options: { captchaToken: TEST_CAPTCHA_TOKEN } });
     if (signInError) throw signInError;
     return client;
   }

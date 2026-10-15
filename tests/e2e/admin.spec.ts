@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { Fixture, hasDb, kyivDateTime, signIn } from "./helpers";
+import { Fixture, hasDb, kyivDateTime, signIn, signInLink } from "./helpers";
 
 test.skip(!hasDb, "needs local Supabase and .env.local");
 test.describe.configure({ mode: "serial" });
@@ -24,11 +24,27 @@ test.describe("access", () => {
     }
   });
 
-  test("login form gives the same answer for any address", async ({ page }) => {
+  test("login form shows the spam check and gives the same answer for any address", async ({ page }) => {
     await page.goto("/admin/login");
     await page.getByLabel("Email").fill(`${fx.run}-nobody@example.com`);
+    // The widget lives in a closed shadow root; its token lands in this hidden input. The test site key
+    // solves itself, so wait for the token to appear.
+    await expect(page.locator('input[name="cf-turnstile-response"]')).not.toHaveValue("", { timeout: 15_000 });
     await page.getByRole("button", { name: "Надіслати посилання для входу" }).click();
     await expect(page.getByText("Перевірте пошту")).toBeVisible();
+  });
+
+  test("an admin's sign-in link arrives through the login form", async ({ page }) => {
+    await page.goto("/admin/login");
+    await page.getByLabel("Email").fill(adminEmail);
+    await expect(page.locator('input[name="cf-turnstile-response"]')).not.toHaveValue("", { timeout: 15_000 });
+    await page.getByRole("button", { name: "Надіслати посилання для входу" }).click();
+    await expect(page.getByText("Перевірте пошту")).toBeVisible();
+    // The local mail catcher received the link, and it points at the confirm page.
+    const inbox = await (await page.request.get(`http://127.0.0.1:54324/api/v1/search?query=to:${encodeURIComponent(adminEmail)}`)).json();
+    expect(inbox.messages?.length).toBeGreaterThan(0);
+    const message = await (await page.request.get(`http://127.0.0.1:54324/api/v1/message/${inbox.messages[0].ID}`)).json();
+    expect(message.HTML).toContain("/auth/confirm?token_hash=");
   });
 
   test("a signed-in account that isn't an admin is turned away", async ({ page }) => {
@@ -39,13 +55,27 @@ test.describe("access", () => {
     expect(csv.status()).toBe(307);
   });
 
-  test("a sign-in link works only once", async ({ page, browser }) => {
-    const { data } = await fx.db.auth.admin.generateLink({ type: "magiclink", email: adminEmail });
-    const link = `/auth/confirm?token_hash=${data.properties!.hashed_token}&type=email&next=/admin`;
+  test("opening the link doesn't sign in until \"Увійти\" is pressed (safe from link scanners)", async ({ page }) => {
+    const link = await signInLink(fx, adminEmail);
+    // An email scanner fetching the link must not use it up.
+    expect((await page.request.get(link)).status()).toBe(200);
     await page.goto(link);
+    await expect(page.getByRole("button", { name: "Увійти" })).toBeVisible();
+    await page.goto("/admin");
+    await expect(page).toHaveURL(/\/admin\/login$/); // still signed out
+    await page.goto(link);
+    await page.getByRole("button", { name: "Увійти" }).click();
+    await expect(page.getByRole("heading", { name: "Події" })).toBeVisible();
+  });
+
+  test("a sign-in link works only once", async ({ page, browser }) => {
+    const link = await signInLink(fx, adminEmail);
+    await page.goto(link);
+    await page.getByRole("button", { name: "Увійти" }).click();
     await expect(page.getByRole("heading", { name: "Події" })).toBeVisible();
     const second = await browser.newPage();
     await second.goto(link);
+    await second.getByRole("button", { name: "Увійти" }).click();
     await expect(second).toHaveURL(/error=link/);
     await second.close();
   });

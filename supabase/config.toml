@@ -211,11 +211,14 @@ token_verifications = 30
 # Number of Web3 logins that can be made in a 5 minute interval per IP address.
 web3 = 30
 
-# Configure one of the supported captcha providers: `hcaptcha`, `turnstile`.
-# [auth.captcha]
-# enabled = true
-# provider = "hcaptcha"
-# secret = ""
+# Every sign-in request (magic link or password) must carry a solved Cloudflare Turnstile token, so the
+# admin sign-in can't be spammed, even by calling the auth API directly with the public key.
+# Locally this is Cloudflare's published test secret, which accepts any token (not a real secret).
+# Production: set provider + the real secret in the dashboard (Auth → Bot and Abuse Protection).
+[auth.captcha]
+enabled = true
+provider = "turnstile"
+secret = "1x0000000000000000000000000000000AA"
 
 [auth.email]
 # Despite the name, false here disables the email provider entirely (no magic-link sign-in).
@@ -229,8 +232,9 @@ double_confirm_changes = true
 enable_confirmations = false
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
-# Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
-max_frequency = "1s"
+# Minimum time between emails to the same address. Each new sign-in link invalidates the previous one,
+# so this also limits how often someone else can cancel an admin's link.
+max_frequency = "60s"
 # Number of characters used in the email OTP.
 otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
