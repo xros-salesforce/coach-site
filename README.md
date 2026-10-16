@@ -5,7 +5,8 @@ and an admin area. Next.js 16 (App Router, Cache Components) + Supabase + Tailwi
 
 ## Run locally
 
-Requires Node 22+ and Docker (Docker Desktop or OrbStack).
+Requires Node 22+ and Docker (Docker Desktop or OrbStack). New machine, including cloud logins: see
+[docs/NEW-MACHINE.md](docs/NEW-MACHINE.md).
 
 ```bash
 npm install
